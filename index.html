@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#101827">
+<title>LevelLock V1</title>
+<style>
+:root{color-scheme:dark;--bg:#0b1220;--panel:#121d2e;--line:#26364d;--text:#edf3fb;--muted:#9aabc2;--green:#43d9a3;--red:#ff7885;--amber:#f6c96b;--blue:#82b5ff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}header{padding:22px 16px 14px;background:#101827;border-bottom:1px solid var(--line)}h1{font-size:25px;margin:0 0 5px;letter-spacing:-.5px}header p{margin:0;color:var(--muted);font-size:13px}.wrap{max-width:1000px;margin:auto;padding:14px;display:grid;gap:12px}.panel{background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:15px;min-width:0}.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.between{justify-content:space-between}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.label{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.7px}.big{font-size:21px;font-weight:700;margin-top:7px;overflow-wrap:anywhere}.small{font-size:12px;color:var(--muted);line-height:1.5}.pill{border:1px solid var(--line);border-radius:999px;padding:5px 9px;font-size:12px;color:var(--muted)}button,select,input{background:#1b2a40;border:1px solid #344963;color:var(--text);border-radius:10px;padding:11px 12px;font-size:14px}button{cursor:pointer;font-weight:650}button.primary{background:#d9e9ff;color:#10203a;border-color:#d9e9ff}button:disabled{opacity:.5}select{max-width:100%}.market{display:grid;gap:12px}.signal{border-left:4px solid var(--line)}.signal.buy{border-left-color:var(--green)}.signal.sell{border-left-color:var(--red)}.status{display:inline-flex;align-items:center;gap:6px}.dot{width:8px;height:8px;border-radius:50%;background:var(--amber);display:inline-block}.dot.ok{background:var(--green)}.dot.bad{background:var(--red)}table{width:100%;border-collapse:collapse;font-size:12px}td,th{padding:8px 5px;border-bottom:1px solid var(--line);text-align:left}th{color:var(--muted);font-weight:600}.scroll{overflow:auto}h2{font-size:17px;margin:0 0 12px}h3{font-size:15px;margin:0 0 8px}.statline{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}.good{color:var(--green)}.bad{color:var(--red)}.warn{color:var(--amber)}.hidden{display:none}.controls{display:flex;gap:8px;flex-wrap:wrap}.notice{border:1px solid #68572e;background:#2b2517;color:#ffe4a3;padding:11px;border-radius:10px;font-size:12px;line-height:1.5}.footer{padding:4px 3px 20px;color:var(--muted);font-size:11px;line-height:1.6}canvas{width:100%;height:140px;display:block}.signalprice{font-size:20px;font-weight:750}.list{display:grid;gap:9px}.entry{padding:10px 0;border-bottom:1px solid var(--line)}@media(min-width:760px){.market{grid-template-columns:1fr 1fr}.wrap{padding:20px}.grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+</style>
+</head>
+<body>
+<header><div class="row between"><div><h1>LevelLock <span style="color:var(--blue)">V1</span></h1><p>Strict breakout · retest · confirmation · 1:2 RR</p></div><span class="pill">SIGNALS ONLY</span></div></header>
+<main class="wrap">
+<div class="notice"><b>Prototype / risk notice:</b> This app is an experimental rules engine, not a proven profitable system. It does not place trades. Backtest results are simulations and can be affected by candle construction, intrabar stop/target order, slippage, and market-data limits. Test on demo and verify every signal independently.</div>
+<section class="panel">
+<div class="row between"><div><h2>Connection</h2><div class="small" id="connectionText">Not connected yet</div></div><div class="controls"><button class="primary" id="connectBtn">Connect market data</button><button id="disconnectBtn" disabled>Disconnect</button></div></div>
+<div class="row" style="margin-top:12px"><button id="notifyBtn">Enable browser notifications</button><span class="small" id="notifyText">Optional; browser/device support varies.</span></div>
+<div class="small" style="margin-top:10px">Uses Deriv public market-data endpoints only; no account token or trading permission is requested.</div>
+</section>
+<section class="market" id="markets">
+<div class="panel"><div class="row between"><h2>Volatility 50 (1s)</h2><span class="pill" id="sym50">Symbol: resolving…</span></div><div class="grid"><div><div class="label">Latest price</div><div class="big" id="price50">—</div></div><div><div class="label">H1 + H4 trend</div><div class="big" id="trend50">—</div></div></div><div class="statline"><span class="label">Signal status</span><b id="status50">Waiting for data</b></div><div class="statline"><span class="label">Latest closed M15</span><span id="candle50">—</span></div><div id="signal50" class="signal panel" style="margin-top:10px;padding:12px"><div class="label">Latest setup</div><div class="big">NO TRADE</div><div class="small">Waiting for a complete qualifying setup.</div></div><canvas id="chart50" width="600" height="140"></canvas></div>
+<div class="panel"><div class="row between"><h2>Volatility 75 (1s)</h2><span class="pill" id="sym75">Symbol: resolving…</span></div><div class="grid"><div><div class="label">Latest price</div><div class="big" id="price75">—</div></div><div><div class="label">H1 + H4 trend</div><div class="big" id="trend75">—</div></div></div><div class="statline"><span class="label">Signal status</span><b id="status75">Waiting for data</b></div><div class="statline"><span class="label">Latest closed M15</span><span id="candle75">—</span></div><div id="signal75" class="signal panel" style="margin-top:10px;padding:12px"><div class="label">Latest setup</div><div class="big">NO TRADE</div><div class="small">Waiting for a complete qualifying setup.</div></div><canvas id="chart75" width="600" height="140"></canvas></div>
+</section>
+<section class="panel">
+<div class="row between"><h2>Historical backtest</h2><span class="pill">M15 candles · H1/H4 filter</span></div>
+<div class="controls"><label class="small">History size<br><select id="historyCount"><option value="500">500 candles (~5 days)</option><option value="1000" selected>1,000 candles (~10 days)</option><option value="2000">2,000 candles (~20 days)</option></select></label><label class="small">Market<br><select id="backtestMarket"><option value="both">Both markets</option><option value="50">Volatility 50 (1s)</option><option value="75">Volatility 75 (1s)</option></select></label><div style="align-self:end"><button class="primary" id="backtestBtn" disabled>Run backtest</button></div></div>
+<div class="small" style="margin:10px 0 12px">The app downloads M15 candles then derives H1/H4 candles from that M15 series for a consistent prototype test. It cannot retrieve more detail than Deriv supplies, and the derived HTF series is not a substitute for a separately fetched native H1/H4 feed.</div>
+<div id="backtestResults" class="small">Connect first, then run the backtest. No performance claims until the test runs.</div>
+</section>
+<section class="panel"><h2>Signal journal (this session)</h2><div class="small">Signals are held in this page's memory only. Export/copy your journal before closing if you need to keep it.</div><div class="controls" style="margin:10px 0"><button id="exportBtn">Export journal CSV</button><button id="clearBtn">Clear journal</button></div><div class="scroll"><table><thead><tr><th>Time</th><th>Market</th><th>Side</th><th>Entry</th><th>Stop</th><th>Target</th><th>Outcome</th></tr></thead><tbody id="journalBody"><tr><td colspan="7" class="small">No signals recorded.</td></tr></tbody></table></div></section>
+<div class="footer">Strategy assumptions in V1: swing points use two candles on each side; trend requires the last two confirmed swing highs and lows to rise/fall on both H1 and H4; support/resistance uses recent confirmed swing levels; breakout must close beyond a level; retest candle must touch the level and reject it; next candle must close beyond the rejection candle's high/low. Stop is beyond the retest candle and target is 2R. These are explicit starter assumptions—not guaranteed to match your discretionary chart reading. No signal is a recommendation to trade.</div>
+</main>
+<script>
+(() => {
+'use strict';
+const WS_URL='wss://ws.derivws.com/websockets/v3?app_id=1089';
+const state={ws:null,connected:false,symbols:{},markets:{},journal:[],notifications:false,req:0,waiting:new Map(),historyReady:false};
+const $=id=>document.getElementById(id);
+const fmt=n=>Number.isFinite(n)?Number(n).toLocaleString(undefined,{maximumFractionDigits:5}):'—';
+const stamp=t=>new Date(t*1000).toLocaleString();
+function send(obj){if(!state.ws||state.ws.readyState!==1)throw new Error('WebSocket is not connected');const id=++state.req;obj.req_id=id;state.ws.send(JSON.stringify(obj));return id}
+function request(obj,timeout=15000){return new Promise((resolve,reject)=>{let id;try{id=send(obj)}catch(e){reject(e);return}const timer=setTimeout(()=>{state.waiting.delete(id);reject(new Error('Request timed out'))},timeout);state.waiting.set(id,{resolve,reject,timer})})}
+function newMarket(key,name){return {key,name,symbol:null,price:null,ticks:[],m15:[],h1:[],h4:[],forming:null,lastClosed:0,trend:'Unknown',setup:'Waiting for data',lastSignalTime:0,levels:[],backtest:null}}
+function setConn(text,ok=false){$('connectionText').textContent=text;const d=document.querySelector('#connectionText');d.style.color=ok?'var(--green)':'var(--muted)'}
+function getCandles(c){return (c||[]).map(x=>({epoch:Number(x.epoch),open:Number(x.open),high:Number(x.high),low:Number(x.low),close:Number(x.close)})).filter(x=>Number.isFinite(x.epoch)&&Number.isFinite(x.close)).sort((a,b)=>a.epoch-b.epoch)}
+function makeCandle(epoch,price){const start=Math.floor(epoch/900)*900;return {epoch:start,open:price,high:price,low:price,close:price}}
+function tickCandle(m,epoch,price){
+ const start=Math.floor(epoch/900)*900;
+ if(!m.forming){m.forming=makeCandle(epoch,price);return}
+ if(start>m.forming.epoch){
+   const closed=m.forming;
+   if(closed.epoch>m.lastClosed){m.m15.push(closed);if(m.m15.length>2500)m.m15.shift();m.lastClosed=closed.epoch;onClosed(m,closed)}
+   m.forming=makeCandle(epoch,price);
+ }else if(start===m.forming.epoch){m.forming.high=Math.max(m.forming.high,price);m.forming.low=Math.min(m.forming.low,price);m.forming.close=price}
+}
+function aggregate(candles,minutes){const span=minutes*60,out=[];for(const c of candles){const epoch=Math.floor(c.epoch/span)*span;let last=out[out.length-1];if(!last||last.epoch!==epoch){out.push({epoch,open:c.open,high:c.high,low:c.low,close:c.close})}else{last.high=Math.max(last.high,c.high);last.low=Math.min(last.low,c.low);last.close=c.close}}return out}
+function pivots(candles,side='both',left=2,right=2){const out=[];for(let i=left;i<candles.length-right;i++){let hi=true,lo=true;for(let j=i-left;j<=i+right;j++){if(j===i)continue;if(candles[j].high>=candles[i].high)hi=false;if(candles[j].low<=candles[i].low)lo=false}if((side!=='low'&&hi)||(side!=='high'&&lo))out.push({i,epoch:candles[i].epoch,high:hi?candles[i].high:null,low:lo?candles[i].low:null})}return out}
+function trendOf(candles){const p=pivots(candles);const hs=p.filter(x=>x.high!==null),ls=p.filter(x=>x.low!==null);if(hs.length<2||ls.length<2)return 'Unknown';const a=hs.slice(-2),b=ls.slice(-2);if(a[1].high>a[0].high&&b[1].low>b[0].low)return 'Bullish';if(a[1].high<a[0].high&&b[1].low<b[0].low)return 'Bearish';return 'Sideways'}
+function alignedTrend(m){m.h1=aggregate(m.m15,60);m.h4=aggregate(m.m15,240);const t1=trendOf(m.h1),t4=trendOf(m.h4);m.trend=t1===t4&&(t1==='Bullish'||t1==='Bearish')?t1:`No alignment (${t1}/${t4})`;return m.trend}
+function recentLevels(candles){const ps=pivots(candles);const recent=ps.filter(p=>p.i>=Math.max(0,candles.length-80));return {res:recent.filter(p=>p.high!==null).map(p=>p.high),sup:recent.filter(p=>p.low!==null).map(p=>p.low)}}
+function near(a,b,tol){return Math.abs(a-b)<=tol}
+function detectLatestSignal(candles,trend){
+ if(candles.length<100||!(trend==='Bullish'||trend==='Bearish'))return null;
+ const end=candles.length-1, start=Math.max(20,end-80), ps=pivots(candles.slice(0,end));
+ const current=candles[end], prior=candles.slice(0,end+1);
+ const ranges=prior.slice(-30).map(c=>c.high-c.low).filter(x=>x>0).sort((a,b)=>a-b);
+ const tol=(ranges[Math.floor(ranges.length*.5)]||0)*.15;
+ if(!(tol>0))return null;
+ // Search newest confirmed breakout -> retest/rejection -> following candle confirmation.
+ for(let b=prior.length-3;b>=start;b--){
+   const history=prior.slice(0,b), pp=pivots(history);
+   const levels=trend==='Bullish'?pp.filter(p=>p.high!==null).map(p=>p.high):pp.filter(p=>p.low!==null).map(p=>p.low);
+   if(!levels.length)continue;
+   const level=trend==='Bullish'?Math.max(...levels.slice(-8)):Math.min(...levels.slice(-8));
+   const br=prior[b], ret=prior[b+1], conf=prior[b+2];
+   const breakout=trend==='Bullish'?br.close>level&&br.open<=level:br.close<level&&br.open>=level;
+   if(!breakout)continue;
+   const touched=trend==='Bullish'?ret.low<=level+tol&&ret.low>=level-tol*3:ret.high>=level-tol&&ret.high<=level+tol*3;
+   const rejection=trend==='Bullish'?ret.close>level&&ret.close>ret.open&&ret.close>ret.low+(ret.high-ret.low)*.6:ret.close<level&&ret.close<ret.open&&ret.close<ret.low+(ret.high-ret.low)*.4;
+   const confirmation=trend==='Bullish'?conf.close>ret.high:conf.close<ret.low;
+   if(touched&&rejection&&confirmation&&conf.epoch===current.epoch){
+     const entry=conf.close,sl=trend==='Bullish'?ret.low-tol:ret.high+tol,risk=Math.abs(entry-sl);if(!risk)continue;
+     return {side:trend==='Bullish'?'BUY':'SELL',entry,sl,tp:trend==='Bullish'?entry+2*risk:entry-2*risk,level,time:conf.epoch,reason:'Breakout close + retest rejection + next-candle confirmation; H1/H4 aligned'};
+   }
+ }
+ return null;
+}
+function onClosed(m,candle){
+ alignedTrend(m);const s=detectLatestSignal(m.m15,m.trend);
+ if(s&&s.time>m.lastSignalTime){m.lastSignalTime=s.time;m.setup=s.side+' setup';state.journal.unshift({...s,market:m.name,outcome:'Open'});if(state.journal.length>300)state.journal.pop();if(state.notifications&&'Notification'in window&&Notification.permission==='granted')new Notification(`LevelLock ${s.side}: ${m.name}`,{body:`Entry ${fmt(s.entry)} · SL ${fmt(s.sl)} · TP ${fmt(s.tp)} (1:2 RR)`});renderJournal()}
+ renderMarket(m);
+}
+function renderMarket(m){
+ const k=m.key, suffix=k==='50'?'50':'75';
+ $('price'+suffix).textContent=fmt(m.price);
+ $('trend'+suffix).textContent=m.trend;
+ $('status'+suffix).textContent=m.setup;
+ $('candle'+suffix).textContent=m.lastClosed?stamp(m.lastClosed):'Waiting for close';
+ const el=$('signal'+suffix),latest=state.journal.find(x=>x.market===m.name);
+ el.className='signal panel '+(latest?.side==='BUY'?'buy':latest?.side==='SELL'?'sell':'');
+ el.innerHTML=latest?`<div class="label">Latest setup · ${latest.side}</div><div class="signalprice">${latest.side} @ ${fmt(latest.entry)}</div><div class="statline"><span>Stop loss</span><b>${fmt(latest.sl)}</b></div><div class="statline"><span>Take profit (2R)</span><b>${fmt(latest.tp)}</b></div><div class="small">${latest.reason}</div>`:`<div class="label">Latest setup</div><div class="big">NO TRADE</div><div class="small">No fully confirmed setup on the latest closed candle.</div>`;
+ drawChart(m);
+}
+function drawChart(m){const canvas=$('chart'+m.key),ctx=canvas.getContext('2d'),w=canvas.width,h=canvas.height;ctx.clearRect(0,0,w,h);const a=m.m15.slice(-50);if(a.length<2)return;const min=Math.min(...a.map(c=>c.low)),max=Math.max(...a.map(c=>c.high)),range=max-min||1;ctx.strokeStyle='#26364d';ctx.lineWidth=1;for(let i=1;i<4;i++){ctx.beginPath();ctx.moveTo(0,h*i/4);ctx.lineTo(w,h*i/4);ctx.stroke()}const dx=w/a.length;for(let i=0;i<a.length;i++){const c=a[i],x=i*dx+dx/2,y=v=>h-((v-min)/range)*(h-10)-5;ctx.strokeStyle=c.close>=c.open?'#43d9a3':'#ff7885';ctx.beginPath();ctx.moveTo(x,y(c.high));ctx.lineTo(x,y(c.low));ctx.stroke();ctx.fillStyle=ctx.strokeStyle;const top=Math.min(y(c.open),y(c.close)),bh=Math.max(1,Math.abs(y(c.open)-y(c.close)));ctx.fillRect(x-dx*.27,top,dx*.54,bh)}}
+function renderJournal(){const body=$('journalBody');if(!state.journal.length){body.innerHTML='<tr><td colspan="7" class="small">No signals recorded.</td></tr>';return}body.innerHTML=state.journal.slice(0,100).map(x=>`<tr><td>${new Date(x.time*1000).toLocaleString()}</td><td>${x.market}</td><td class="${x.side==='BUY'?'good':'bad'}">${x.side}</td><td>${fmt(x.entry)}</td><td>${fmt(x.sl)}</td><td>${fmt(x.tp)}</td><td>${x.outcome}</td></tr>`).join('')}
+function chooseSymbol(active,needle){const list=active||[];const exact=list.find(x=>String(x.display_name||'').toLowerCase()===needle.toLowerCase());if(exact)return exact;const alt=needle.includes('50')?list.find(x=>/volatility 50 \(1s\)/i.test(x.display_name||'')):list.find(x=>/volatility 75 \(1s\)/i.test(x.display_name||''));return alt||null}
+async function connect(){
+ $('connectBtn').disabled=true;setConn('Connecting to Deriv public market data…');
+ try{
+  const ws=new WebSocket(WS_URL);state.ws=ws;
+  ws.onopen=async()=>{
+   try{
+    const result=await request({active_symbols:'full',product_type:'basic'});
+    const active=result.active_symbols||[];
+    const a=chooseSymbol(active,'Volatility 50 (1s)'),b=chooseSymbol(active,'Volatility 75 (1s)');
+    if(!a||!b){const names=active.filter(x=>/volatility (50|75)/i.test(x.display_name||'')).map(x=>`${x.display_name}: ${x.symbol}`).join('; ');throw new Error('Could not resolve both exact market names from active_symbols. Returned candidates: '+(names||'none'))}
+    for(const [key,obj,name] of [['50',a,'Volatility 50 (1s)'],['75',b,'Volatility 75 (1s)']]){
+      const m=newMarket(key,name);m.symbol=obj.symbol;state.markets[key]=m;state.symbols[key]=obj.symbol;
+      $('sym'+key).textContent='Symbol: '+obj.symbol;
+      const hist=await request({ticks_history:obj.symbol,adjust_start_time:1,count:1000,end:'latest',style:'candles',granularity:900});
+      m.m15=getCandles(hist.candles);if(m.m15.length)m.lastClosed=m.m15[m.m15.length-1].epoch;
+      alignedTrend(m);m.price=m.m15.at(-1)?.close??null;renderMarket(m);
+      send({ticks:obj.symbol,subscribe:1});
+    }
+    state.connected=true;setConn('Connected · live tick stream active',true);$('disconnectBtn').disabled=false;$('backtestBtn').disabled=false;$('connectBtn').textContent='Reconnect';
+   }catch(e){setConn('Connection setup failed: '+e.message);$('connectBtn').disabled=false;try{ws.close()}catch(_){}}
+  };
+  ws.onmessage=ev=>{
+    let d;try{d=JSON.parse(ev.data)}catch(_){return}
+    if(d.req_id&&state.waiting.has(d.req_id)){const w=state.waiting.get(d.req_id);clearTimeout(w.timer);state.waiting.delete(d.req_id);if(d.error)w.reject(new Error(d.error.message||'Deriv API error'));else w.resolve(d);return}
+    if(d.error){setConn('API error: '+d.error.message);return}
+    if(d.msg_type==='tick'&&d.tick){for(const m of Object.values(state.markets)){if(m.symbol===d.tick.symbol){m.price=Number(d.tick.quote);tickCandle(m,Number(d.tick.epoch),m.price);renderMarket(m)}}}
+  };
+  ws.onerror=()=>setConn('WebSocket error. Check connection and try again.');
+  ws.onclose=()=>{state.connected=false;$('disconnectBtn').disabled=true;$('backtestBtn').disabled=true;$('connectBtn').disabled=false;if(state.connectionByUser!==true)setConn('Disconnected. Tap Connect market data to reconnect.')}
+ }catch(e){setConn(e.message);$('connectBtn').disabled=false}
+}
+async function runBacktestOne(m,count){
+ const h=await request({ticks_history:m.symbol,adjust_start_time:1,count,end:'latest',style:'candles',granularity:900},30000);
+ const candles=getCandles(h.candles);if(candles.length<150)throw new Error(`${m.name}: only ${candles.length} candles returned; need at least 150.`);
+ // Walk forward; derive higher timeframe candles only from M15 bars available at each decision point.
+ const trades=[];let lastSignal=-1;
+ for(let i=130;i<candles.length-2;i++){
+   const slice=candles.slice(0,i+1),t1=aggregate(slice,60),t4=aggregate(slice,240),a=trendOf(t1),b=trendOf(t4),trend=a===b&&(a==='Bullish'||a==='Bearish')?a:'No alignment';
+   const s=detectLatestSignal(slice,trend);if(!s||s.time<=lastSignal)continue;lastSignal=s.time;
+   let outcome='Unresolved',exitIndex=-1,r=0;
+   for(let j=i+1;j<candles.length;j++){
+    const c=candles[j],hitSL=s.side==='BUY'?c.low<=s.sl:c.high>=s.sl,hitTP=s.side==='BUY'?c.high>=s.tp:c.low<=s.tp;
+    if(hitSL&&hitTP){outcome='Loss*';r=-1;exitIndex=j;break} // conservative: assume stop first when both hit in same candle
+    if(hitSL){outcome='Loss';r=-1;exitIndex=j;break}
+    if(hitTP){outcome='Win';r=2;exitIndex=j;break}
+   }
+   if(outcome!=='Unresolved'){trades.push({side:s.side,entry:s.entry,sl:s.sl,tp:s.tp,outcome,r,epoch:s.time,exitIndex})}
+ }
+ return {name:m.name,candles:candles.length,trades};
+}
+async function runBacktest(){
+ if(!state.connected)return;
+ $('backtestBtn').disabled=true;$('backtestResults').textContent='Downloading historical candles and running the rule engine…';
+ try{
+  const count=Number($('historyCount').value),which=$('backtestMarket').value,results=[];
+  for(const key of (which==='both'?['50','75']:[which])){
+   const m=state.markets[key];if(!m)throw new Error('Connect first so symbols can be resolved.');results.push(await runBacktestOne(m,count))
+  }
+  const all=results.flatMap(x=>x.trades),wins=all.filter(x=>x.outcome==='Win').length,losses=all.filter(x=>x.outcome.startsWith('Loss')).length,closed=wins+losses,net=all.reduce((a,x)=>a+x.r,0),wr=closed?wins/closed*100:0;
+  const per=results.map(r=>{const w=r.trades.filter(t=>t.outcome==='Win').length,l=r.trades.filter(t=>t.outcome.startsWith('Loss')).length,n=w+l,rr=r.trades.reduce((s,t)=>s+t.r,0);return `<div class="panel" style="padding:12px;margin-top:10px"><h3>${r.name}</h3><div class="statline"><span>Candles tested</span><b>${r.candles}</b></div><div class="statline"><span>Closed trades</span><b>${n}</b></div><div class="statline"><span>Wins / losses</span><b>${w} / ${l}</b></div><div class="statline"><span>Win rate</span><b>${n?(w/n*100).toFixed(1)+'%':'N/A'}</b></div><div class="statline"><span>Net R (theoretical)</span><b class="${rr>=0?'good':'bad'}">${rr.toFixed(1)}R</b></div></div>`}).join('');
+  $('backtestResults').innerHTML=`<div class="grid" style="margin-top:10px"><div class="panel"><div class="label">Closed trades</div><div class="big">${closed}</div></div><div class="panel"><div class="label">Win rate</div><div class="big">${closed?wr.toFixed(1)+'%':'N/A'}</div></div><div class="panel"><div class="label">Net R</div><div class="big ${net>=0?'good':'bad'}">${net.toFixed(1)}R</div></div><div class="panel"><div class="label">Unresolved / ignored</div><div class="big">${all.length-closed}</div></div></div><div class="small" style="margin-top:10px">Asterisk (*) means both stop and target were inside the same candle; the test conservatively counted the stop first. Net R assumes ideal fills at entry/SL/TP and excludes spread, slippage and execution delay. This is a prototype sample, not proof of an edge.</div>${per}`;
+ }catch(e){$('backtestResults').textContent='Backtest failed: '+e.message}
+ finally{$('backtestBtn').disabled=!state.connected}
+}
+$('connectBtn').addEventListener('click',()=>{if(state.ws)try{state.ws.close()}catch(_){};connect()});
+$('disconnectBtn').addEventListener('click',()=>{state.connectionByUser=true;if(state.ws)state.ws.close();state.ws=null;state.connected=false;setConn('Disconnected by you.');$('connectBtn').disabled=false;$('disconnectBtn').disabled=true;state.connectionByUser=false});
+$('backtestBtn').addEventListener('click',runBacktest);
+$('notifyBtn').addEventListener('click',async()=>{if(!('Notification'in window)){$('notifyText').textContent='This browser does not support notifications.';return}try{const p=await Notification.requestPermission();state.notifications=p==='granted';$('notifyText').textContent=state.notifications?'Notifications enabled while the page is active.':'Permission not granted.'}catch(e){$('notifyText').textContent='Could not enable notifications in this browser.'}});
+$('clearBtn').addEventListener('click',()=>{if(confirm('Clear all session signals?')){state.journal=[];renderJournal();for(const m of Object.values(state.markets))renderMarket(m)}});
+$('exportBtn').addEventListener('click',()=>{const rows=[['time','market','side','entry','stop','target','outcome','reason'],...state.journal.map(x=>[stamp(x.time),x.market,x.side,x.entry,x.sl,x.tp,x.outcome,x.reason])];const csv=rows.map(r=>r.map(v=>'"'+String(v??'').replaceAll('"','""')+'"').join(',')).join('\r\n');const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='levellock-journal.csv';a.click();URL.revokeObjectURL(url)});
+})();
+</script>
+</body></html>
